@@ -10,7 +10,6 @@ import { PublicLayout } from "@/layouts/PublicLayout";
 import { ClientLayout } from "@/layouts/ClientLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
 
-// Public pages
 import HomePage from "@/pages/HomePage";
 import SharedHostingPage from "@/pages/SharedHostingPage";
 import ResellerHostingPage from "@/pages/ResellerHostingPage";
@@ -22,13 +21,11 @@ import ContactPage from "@/pages/ContactPage";
 import CartPage from "@/pages/CartPage";
 import NotFound from "@/pages/NotFound";
 
-// Auth pages
 import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import VerifyEmailPage from "@/pages/auth/VerifyEmailPage";
 
-// Client pages
 import ClientDashboard from "@/pages/client/ClientDashboard";
 import ClientServices from "@/pages/client/ClientServices";
 import ClientServiceDetail from "@/pages/client/ClientServiceDetail";
@@ -44,7 +41,6 @@ import ClientDirectAdmin from "@/pages/client/ClientDirectAdmin";
 import ClientProfile from "@/pages/client/ClientProfile";
 import ClientSecurity from "@/pages/client/ClientSecurity";
 
-// Admin pages
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import {
   AdminClients, AdminProducts, AdminOrders, AdminInvoices, AdminPayments,
@@ -55,6 +51,14 @@ import {
 
 const queryClient = new QueryClient();
 
+function ClientArea() {
+  return <ProtectedRoute><ClientLayout /></ProtectedRoute>;
+}
+
+function AdminArea() {
+  return <ProtectedRoute requiredRole="admin"><AdminLayout /></ProtectedRoute>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -64,7 +68,6 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              {/* Public routes */}
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/hosting/shared" element={<SharedHostingPage />} />
@@ -77,14 +80,12 @@ const App = () => (
                 <Route path="/cart" element={<CartPage />} />
               </Route>
 
-              {/* Auth routes (no layout) */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-              {/* Client protected routes */}
-              <Route element={<ProtectedRoute requiredRole="client"><ClientLayout /></ProtectedRoute>}>
+              <Route element={<ClientArea />}>
                 <Route path="/client/dashboard" element={<ClientDashboard />} />
                 <Route path="/client/services" element={<ClientServices />} />
                 <Route path="/client/services/:id" element={<ClientServiceDetail />} />
@@ -101,8 +102,7 @@ const App = () => (
                 <Route path="/client/security" element={<ClientSecurity />} />
               </Route>
 
-              {/* Admin protected routes */}
-              <Route element={<ProtectedRoute requiredRole="admin"><AdminLayout /></ProtectedRoute>}>
+              <Route element={<AdminArea />}>
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin/clients" element={<AdminClients />} />
                 <Route path="/admin/products" element={<AdminProducts />} />

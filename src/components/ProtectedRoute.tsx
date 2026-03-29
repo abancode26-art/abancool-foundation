@@ -1,8 +1,8 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   requiredRole?: 'client' | 'admin';
 }
 
@@ -29,5 +29,5 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/client/dashboard" replace />;
   }
 
-  return <>{children}</>;
+  return children ? <>{children}</> : <Outlet />;
 }
