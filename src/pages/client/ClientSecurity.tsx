@@ -26,9 +26,8 @@ export default function ClientSecurity() {
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="font-heading font-semibold mb-3">Email Verification</h3>
         <div className="flex items-center gap-3">
-          <div className={`h-3 w-3 rounded-full ${user?.email_verified_at ? 'bg-success' : 'bg-warning'}`} />
-          <span className="text-sm">{user?.email_verified_at ? 'Email verified' : 'Email not verified'}</span>
-          {!user?.email_verified_at && <Button size="sm" variant="outline">Resend Verification</Button>}
+          <div className="h-3 w-3 rounded-full bg-success" />
+          <span className="text-sm">Email verified (auto-confirmed)</span>
         </div>
       </div>
 
