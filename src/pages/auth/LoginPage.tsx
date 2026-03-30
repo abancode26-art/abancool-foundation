@@ -20,10 +20,6 @@ export default function LoginPage() {
     try {
       await login(email, password);
       toast.success('Welcome back!');
-      // Kiro: After real login, redirect based on role
-      const saved = localStorage.getItem('abancool_user');
-      const user = saved ? JSON.parse(saved) : null;
-      navigate(user?.role === 'admin' ? '/admin/dashboard' : '/client/dashboard');
     } catch (err: any) {
       toast.error(err.message || 'Login failed');
     } finally {
