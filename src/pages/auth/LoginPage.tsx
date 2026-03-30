@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(isAdmin ? '/admin/dashboard' : '/client/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, isAdmin, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,10 +26,6 @@ export default function LoginPage() {
     try {
       await login(email, password);
       toast.success('Welcome back!');
-      // Kiro: After real login, redirect based on role
-      const saved = localStorage.getItem('abancool_user');
-      const user = saved ? JSON.parse(saved) : null;
-      navigate(user?.role === 'admin' ? '/admin/dashboard' : '/client/dashboard');
     } catch (err: any) {
       toast.error(err.message || 'Login failed');
     } finally {
@@ -57,10 +59,6 @@ export default function LoginPage() {
             </div>
             <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl font-semibold">{loading ? 'Signing in...' : 'Sign In'}</Button>
           </form>
-
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            Demo: <code className="text-xs bg-muted px-1.5 py-0.5 rounded">client@abancool.com</code> or <code className="text-xs bg-muted px-1.5 py-0.5 rounded">admin@abancool.com</code>
-          </div>
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-6">

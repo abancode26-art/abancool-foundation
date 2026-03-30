@@ -13,7 +13,7 @@ export default function ClientDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold font-heading mb-1">Welcome back, {user?.name?.split(' ')[0]}</h1>
+        <h1 className="text-2xl font-bold font-heading mb-1">Welcome back, {user?.full_name?.split(' ')[0]}</h1>
         <p className="text-muted-foreground">Here's an overview of your account.</p>
       </div>
 

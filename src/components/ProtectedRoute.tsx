@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -25,7 +25,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requiredRole === 'admin' && user?.role !== 'admin') {
+  if (requiredRole === 'admin' && !isAdmin) {
     return <Navigate to="/client/dashboard" replace />;
   }
 

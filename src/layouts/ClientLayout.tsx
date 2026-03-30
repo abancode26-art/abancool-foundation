@@ -105,9 +105,9 @@ export function ClientLayout() {
             </Button>
             <div className="hidden sm:flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
-                {user?.name?.charAt(0) || 'U'}
+                {user?.full_name?.charAt(0) || 'U'}
               </div>
-              <span className="text-sm font-medium">{user?.name}</span>
+              <span className="text-sm font-medium">{user?.full_name}</span>
             </div>
           </div>
         </header>

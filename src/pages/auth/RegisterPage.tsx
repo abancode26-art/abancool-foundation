@@ -23,8 +23,8 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(name, email, password);
-      toast.success('Account created! Please verify your email.');
-      navigate('/verify-email');
+      toast.success('Account created successfully!');
+      navigate('/client/dashboard');
     } catch (err: any) {
       toast.error(err.message || 'Registration failed');
     } finally {

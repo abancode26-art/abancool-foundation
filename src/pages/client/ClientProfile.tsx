@@ -22,7 +22,7 @@ export default function ClientProfile() {
 
       <form onSubmit={handleSave} className="rounded-xl border border-border bg-card p-8 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><label className="text-sm font-medium mb-1.5 block">Full Name</label><Input defaultValue={user?.name} /></div>
+          <div><label className="text-sm font-medium mb-1.5 block">Full Name</label><Input defaultValue={user?.full_name} /></div>
           <div><label className="text-sm font-medium mb-1.5 block">Email</label><Input defaultValue={user?.email} type="email" /></div>
           <div><label className="text-sm font-medium mb-1.5 block">Phone</label><Input placeholder="+254 700 000 000" /></div>
           <div><label className="text-sm font-medium mb-1.5 block">Company (Optional)</label><Input placeholder="Company name" /></div>
