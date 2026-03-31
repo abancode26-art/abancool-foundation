@@ -36,6 +36,13 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Invalid phone number. Use format 254XXXXXXXXX" }), { status: 400, headers: corsHeaders });
     }
 
+    // Get user profile for name/email
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", user.id)
+      .single();
+
     // Verify invoice belongs to user and is unpaid
     const { data: invoice } = await supabaseAdmin
       .from("invoices")
@@ -67,7 +74,7 @@ Deno.serve(async (req) => {
       .insert({
         user_id: user.id,
         invoice_id,
-        gateway: "intersend_mpesa",
+        gateway: "intasend_mpesa",
         method: "mpesa_stk_push",
         amount: Number(invoice.balance_due),
         currency: invoice.currency,
@@ -80,44 +87,53 @@ Deno.serve(async (req) => {
 
     if (paymentError) throw paymentError;
 
-    // Call Intersend API
-    const INTERSEND_BASE_URL = Deno.env.get("INTERSEND_BASE_URL");
-    const INTERSEND_PUBLIC_KEY = Deno.env.get("INTERSEND_PUBLIC_KEY");
-    const INTERSEND_SECRET_KEY = Deno.env.get("INTERSEND_SECRET_KEY");
+    // Call IntaSend API - M-Pesa STK Push
+    // Docs: POST https://payment.intasend.com/api/v1/payment/mpesa-stk-push/
+    const INTASEND_BASE_URL = Deno.env.get("INTERSEND_BASE_URL") || "https://payment.intasend.com";
+    const INTASEND_PUBLISHABLE_KEY = Deno.env.get("INTERSEND_PUBLIC_KE") || "";
+    const INTASEND_SECRET_KEY = Deno.env.get("INTERSEND_SECRET_KEY") || "";
     const APP_BASE_URL = Deno.env.get("APP_BASE_URL") || Deno.env.get("SUPABASE_URL");
 
-    if (!INTERSEND_BASE_URL || !INTERSEND_SECRET_KEY) {
-      // Update payment to failed if keys not configured
+    if (!INTASEND_SECRET_KEY) {
       await supabaseAdmin.from("payments").update({ status: "failed", raw_response_json: { error: "Payment gateway not configured" } }).eq("id", payment.id);
       return new Response(JSON.stringify({ error: "Payment gateway not configured. Contact support." }), { status: 503, headers: corsHeaders });
     }
 
-    const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mpesa-webhook`;
+    const nameParts = (profile?.full_name || "Customer").split(" ");
+    const firstName = nameParts[0] || "Customer";
+    const lastName = nameParts.slice(1).join(" ") || "User";
 
     const stkPayload = {
-      phone_number: cleanPhone,
+      first_name: firstName,
+      last_name: lastName,
+      email: profile?.email || user.email || "customer@abancool.com",
+      host: APP_BASE_URL,
       amount: Number(invoice.balance_due),
-      account_reference: merchantRef,
-      transaction_desc: `Payment for ${invoice.invoice_number}`,
-      callback_url: callbackUrl,
+      phone_number: cleanPhone,
+      api_ref: merchantRef,
     };
 
-    const providerResponse = await fetch(`${INTERSEND_BASE_URL}/mpesa/stk-push`, {
+    console.log("IntaSend STK Push payload:", JSON.stringify(stkPayload));
+
+    const providerResponse = await fetch(`${INTASEND_BASE_URL}/api/v1/payment/mpesa-stk-push/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${INTERSEND_SECRET_KEY}`,
-        "X-Public-Key": INTERSEND_PUBLIC_KEY || "",
+        "Authorization": `Bearer ${INTASEND_SECRET_KEY}`,
+        "X-IntaSend-Public-API-Key": INTASEND_PUBLISHABLE_KEY,
       },
       body: JSON.stringify(stkPayload),
     });
 
     const providerData = await providerResponse.json();
+    console.log("IntaSend STK Push response:", JSON.stringify(providerData));
 
     // Update payment with provider response
+    const checkoutRequestId = providerData?.invoice?.invoice_id || providerData?.id || null;
+    
     await supabaseAdmin.from("payments").update({
       status: providerResponse.ok ? "pending" : "failed",
-      checkout_request_id: providerData.CheckoutRequestID || providerData.checkout_request_id || null,
+      checkout_request_id: checkoutRequestId,
       raw_request_json: stkPayload,
       raw_response_json: providerData,
     }).eq("id", payment.id);
@@ -129,14 +145,14 @@ Deno.serve(async (req) => {
 
     if (!providerResponse.ok) {
       return new Response(JSON.stringify({
-        error: "STK Push failed. Please try again.",
+        error: providerData?.errors?.[0]?.detail || "STK Push failed. Please try again.",
         details: providerData,
-      }), { status: 502, headers: corsHeaders });
+      }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify({
       payment_id: payment.id,
-      checkout_request_id: providerData.CheckoutRequestID || providerData.checkout_request_id,
+      checkout_request_id: checkoutRequestId,
       message: "STK Push sent to your phone. Please enter your M-Pesa PIN.",
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {

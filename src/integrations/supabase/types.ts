@@ -289,7 +289,38 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "domains_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "recent_orders_view"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      edge_function_deployments: {
+        Row: {
+          deployed_at: string | null
+          function_name: string
+          id: string
+          notes: string | null
+          status: string
+        }
+        Insert: {
+          deployed_at?: string | null
+          function_name: string
+          id?: string
+          notes?: string | null
+          status?: string
+        }
+        Update: {
+          deployed_at?: string | null
+          function_name?: string
+          id?: string
+          notes?: string | null
+          status?: string
+        }
+        Relationships: []
       }
       hosting_categories: {
         Row: {
@@ -500,6 +531,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "hosting_services_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "recent_orders_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "hosting_services_order_item_id_fkey"
             columns: ["order_item_id"]
             isOneToOne: false
@@ -613,6 +651,13 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "recent_orders_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       order_items: {
@@ -664,6 +709,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "recent_orders_view"
             referencedColumns: ["id"]
           },
           {
@@ -1043,9 +1095,71 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_stats_view: {
+        Row: {
+          active_services: number | null
+          daily_revenue: number | null
+          failed_provisions: number | null
+          monthly_revenue: number | null
+          open_tickets: number | null
+          pending_orders: number | null
+          total_clients: number | null
+          unpaid_invoices: number | null
+        }
+        Relationships: []
+      }
+      recent_orders_view: {
+        Row: {
+          created_at: string | null
+          customer_email: string | null
+          customer_name: string | null
+          id: string | null
+          order_number: string | null
+          status: Database["public"]["Enums"]["order_status"] | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      recent_payments_view: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          customer_name: string | null
+          id: string | null
+          invoice_number: string | null
+          method: string | null
+          status: Database["public"]["Enums"]["payment_status"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      create_server: {
+        Args: {
+          directadmin_password?: string
+          directadmin_url?: string
+          directadmin_username?: string
+          ip_address: string
+          location?: string
+          max_accounts?: number
+          notes?: string
+          server_name: string
+        }
+        Returns: Json
+      }
+      create_service_credentials: {
+        Args: {
+          login_url?: string
+          password?: string
+          service_uuid: string
+          username?: string
+        }
+        Returns: Json
+      }
+      get_directadmin_login: {
+        Args: { service_uuid: string; user_uuid: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1055,6 +1169,19 @@ export type Database = {
       }
       is_admin_or_above: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      save_directadmin_config: {
+        Args: {
+          api_password?: string
+          api_username?: string
+          hostname: string
+          nameservers?: string
+          port?: string
+          provisioning_mode?: string
+          use_ssl?: boolean
+        }
+        Returns: Json
+      }
+      verify_mpesa_tables: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "support" | "customer"
