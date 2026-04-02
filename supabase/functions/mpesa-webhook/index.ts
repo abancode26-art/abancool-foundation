@@ -18,18 +18,19 @@ Deno.serve(async (req) => {
     const { data: webhookEvent } = await supabaseAdmin
       .from("webhook_events")
       .insert({
-        provider: "intersend_mpesa",
+        provider: "intasend_mpesa",
         event_type: "stk_callback",
-        event_id: payload.CheckoutRequestID || payload.checkout_request_id || "",
+        event_id: payload.invoice_id || payload.checkout_request_id || payload.CheckoutRequestID || "",
         payload_json: payload,
       })
       .select()
       .single();
 
-    // Extract relevant fields (adapt to actual Intersend webhook format)
-    const checkoutRequestId = payload.CheckoutRequestID || payload.checkout_request_id;
-    const resultCode = payload.ResultCode ?? payload.result_code;
-    const mpesaRef = payload.MpesaReceiptNumber || payload.mpesa_receipt_number || payload.transaction_id;
+    // IntaSend webhook format: { invoice_id, state, ... }
+    // Also handle legacy Safaricom format
+    const checkoutRequestId = payload.invoice_id || payload.checkout_request_id || payload.CheckoutRequestID;
+    const state = payload.state || payload.ResultCode;
+    const mpesaRef = payload.mpesa_reference || payload.MpesaReceiptNumber || payload.transaction_id || "";
 
     if (!checkoutRequestId) {
       console.error("No checkout_request_id in webhook payload");
@@ -41,11 +42,10 @@ Deno.serve(async (req) => {
       .from("payments")
       .select("*")
       .eq("checkout_request_id", checkoutRequestId)
-      .single();
+      .maybeSingle();
 
     if (!payment) {
       console.error("Payment not found for checkout_request_id:", checkoutRequestId);
-      // Still return 200 to prevent retries
       return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }), { status: 200 });
     }
 
@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Already processed" }), { status: 200 });
     }
 
-    const isSuccess = resultCode === 0 || resultCode === "0" || String(resultCode).toLowerCase() === "success";
+    const isSuccess = state === "COMPLETE" || state === "SUCCESSFUL" || state === 0 || state === "0" || String(state).toLowerCase() === "success";
 
     if (isSuccess) {
       // Update payment to success
@@ -76,12 +76,44 @@ Deno.serve(async (req) => {
         paid_at: new Date().toISOString(),
       }).eq("id", payment.invoice_id);
 
-      // Update order to paid
+      // Get invoice to find order
       const { data: invoice } = await supabaseAdmin
         .from("invoices")
         .select("order_id")
         .eq("id", payment.invoice_id)
         .single();
+
+      // Notify customer about successful payment
+      await supabaseAdmin.from("notifications").insert({
+        user_id: payment.user_id,
+        title: "Payment Successful",
+        message: `Your M-Pesa payment of KES ${Number(payment.amount).toLocaleString()} has been received. ${mpesaRef ? `Ref: ${mpesaRef}` : ""}`,
+        type: "payment",
+        action_url: `/client/invoices/${payment.invoice_id}`,
+      }).catch(() => {});
+
+      // Notify admins about payment
+      const { data: adminUsers } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["super_admin", "admin"]);
+
+      const { data: customerProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("full_name")
+        .eq("id", payment.user_id)
+        .single();
+
+      if (adminUsers?.length) {
+        const adminNotifs = adminUsers.map((a: any) => ({
+          user_id: a.user_id,
+          title: "Payment Received",
+          message: `${customerProfile?.full_name || "Customer"} paid KES ${Number(payment.amount).toLocaleString()} via M-Pesa. ${mpesaRef ? `Ref: ${mpesaRef}` : ""}`,
+          type: "payment",
+          action_url: `/admin/payments`,
+        }));
+        await supabaseAdmin.from("notifications").insert(adminNotifs).catch(() => {});
+      }
 
       if (invoice?.order_id) {
         await supabaseAdmin.from("orders").update({ status: "paid" }).eq("id", invoice.order_id);
@@ -89,12 +121,40 @@ Deno.serve(async (req) => {
         // Trigger provisioning for hosting items
         const { data: orderItems } = await supabaseAdmin
           .from("order_items")
-          .select("*, hosting_products(name, directadmin_package_name)")
+          .select("*")
           .eq("order_id", invoice.order_id);
 
         if (orderItems) {
           for (const item of orderItems) {
-            if (item.item_type === "hosting" && item.product_id) {
+            if ((item.item_type === "hosting" || item.item_type === "hosting_package") && item.product_id) {
+              // Get DA package name from either products table
+              let daPackageName = "";
+              let productName = item.description || "Hosting";
+              let accountType = "user";
+
+              const { data: hp } = await supabaseAdmin
+                .from("hosting_products")
+                .select("name, directadmin_package_name, product_type")
+                .eq("id", item.product_id)
+                .maybeSingle();
+
+              if (hp) {
+                daPackageName = hp.directadmin_package_name || "";
+                productName = hp.name;
+                if (hp.product_type === "reseller_hosting") accountType = "reseller";
+              } else {
+                const { data: pkg } = await supabaseAdmin
+                  .from("hosting_packages")
+                  .select("name, directadmin_package_name, category")
+                  .eq("id", item.product_id)
+                  .maybeSingle();
+                if (pkg) {
+                  daPackageName = pkg.directadmin_package_name || "";
+                  productName = pkg.name;
+                  if (pkg.category?.toLowerCase().includes("reseller")) accountType = "reseller";
+                }
+              }
+
               // Create hosting service record
               const { data: service } = await supabaseAdmin
                 .from("hosting_services")
@@ -106,14 +166,17 @@ Deno.serve(async (req) => {
                   domain_name: item.domain_name || "",
                   status: "pending",
                   billing_cycle: item.billing_cycle,
-                  package_name: item.hosting_products?.directadmin_package_name || "",
+                  package_name: productName,
+                  directadmin_package_name: daPackageName,
+                  account_type: accountType,
+                  directadmin_reseller: accountType === "reseller",
                   next_due_date: calculateNextDueDate(item.billing_cycle),
                 })
                 .select()
                 .single();
 
               if (service) {
-                // Trigger DirectAdmin provisioning (async, fire-and-forget)
+                // Trigger DirectAdmin provisioning
                 const provisionUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/da-provision`;
                 fetch(provisionUrl, {
                   method: "POST",
@@ -127,7 +190,6 @@ Deno.serve(async (req) => {
             }
 
             if (["domain_register", "domain_transfer"].includes(item.item_type) && item.domain_name) {
-              // Create domain record
               const parts = item.domain_name.split(".");
               const tld = "." + parts.slice(1).join(".");
               await supabaseAdmin.from("domains").insert({
@@ -139,7 +201,6 @@ Deno.serve(async (req) => {
                 order_id: invoice.order_id,
               });
 
-              // Trigger domain registration (async)
               const domainFn = item.item_type === "domain_register" ? "domain-register" : "domain-transfer";
               fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/${domainFn}`, {
                 method: "POST",
@@ -153,7 +214,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Update order status to processing
         await supabaseAdmin.from("orders").update({ status: "processing" }).eq("id", invoice.order_id);
       }
     } else {
@@ -163,8 +223,16 @@ Deno.serve(async (req) => {
         raw_response_json: payload,
       }).eq("id", payment.id);
 
-      // Revert invoice to unpaid
       await supabaseAdmin.from("invoices").update({ status: "unpaid" }).eq("id", payment.invoice_id);
+
+      // Notify customer about failure
+      await supabaseAdmin.from("notifications").insert({
+        user_id: payment.user_id,
+        title: "Payment Failed",
+        message: `Your M-Pesa payment of KES ${Number(payment.amount).toLocaleString()} was not completed. Please try again.`,
+        type: "payment",
+        action_url: `/client/invoices/${payment.invoice_id}`,
+      }).catch(() => {});
     }
 
     // Mark webhook as processed
@@ -172,14 +240,12 @@ Deno.serve(async (req) => {
       await supabaseAdmin.from("webhook_events").update({ processed: true, processed_at: new Date().toISOString() }).eq("id", webhookEvent.id);
     }
 
-    // Always return 200 to prevent retries
     return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Webhook processing error:", error);
-    // Still return 200 to prevent infinite retries
     return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }), { status: 200 });
   }
 });
