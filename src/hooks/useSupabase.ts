@@ -650,12 +650,27 @@ export function useAllTickets() {
   return useQuery({
     queryKey: ['admin-tickets'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch tickets first
+      const { data: tickets, error } = await supabase
         .from('support_tickets')
-        .select('*, profiles(full_name, email), support_departments(name)')
+        .select('*, support_departments(name)')
         .order('updated_at', { ascending: false });
       if (error) throw error;
-      return data;
+      if (!tickets?.length) return [];
+
+      // Fetch profiles for each unique user_id
+      const userIds = [...new Set(tickets.map((t: any) => t.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', userIds);
+
+      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+
+      return tickets.map((t: any) => ({
+        ...t,
+        profiles: profileMap.get(t.user_id) || { full_name: 'Unknown', email: '' },
+      }));
     },
   });
 }
