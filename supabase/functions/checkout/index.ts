@@ -28,10 +28,10 @@ Deno.serve(async (req) => {
 
     const { coupon_code } = await req.json();
 
-    // Get cart items
-    const { data: cartItems, error: cartError } = await supabaseUser
+    // Get cart items with joins to BOTH product tables
+    const { data: cartItems, error: cartError } = await supabaseAdmin
       .from("cart_items")
-      .select("*, hosting_products(name, slug, directadmin_package_name)")
+      .select("*")
       .eq("user_id", user.id);
 
     if (cartError) throw cartError;
@@ -45,29 +45,72 @@ Deno.serve(async (req) => {
       let unitPrice = 0;
       let description = "";
 
-      if (item.item_type === "hosting" && item.product_id) {
+      if ((item.item_type === "hosting" || item.item_type === "hosting_package") && item.product_id) {
+        // Try hosting_product_pricing first (new system)
         const { data: pricing } = await supabaseAdmin
           .from("hosting_product_pricing")
           .select("price, setup_fee")
           .eq("product_id", item.product_id)
-          .eq("billing_cycle", item.billing_cycle!)
+          .eq("billing_cycle", item.billing_cycle || "monthly")
           .eq("is_active", true)
-          .single();
+          .maybeSingle();
 
-        unitPrice = pricing ? Number(pricing.price) + Number(pricing.setup_fee) : 0;
-        description = `${item.hosting_products?.name || "Hosting"} - ${item.billing_cycle}`;
+        if (pricing) {
+          unitPrice = Number(pricing.price) + Number(pricing.setup_fee || 0);
+        } else {
+          // Fallback to hosting_packages table (old system)
+          const { data: pkg } = await supabaseAdmin
+            .from("hosting_packages")
+            .select("name, monthly_price, annual_price, setup_fee")
+            .eq("id", item.product_id)
+            .maybeSingle();
+
+          if (pkg) {
+            const cycle = item.billing_cycle || "monthly";
+            if (cycle === "annual" || cycle === "annually") {
+              unitPrice = Number(pkg.annual_price || 0) + Number(pkg.setup_fee || 0);
+            } else {
+              unitPrice = Number(pkg.monthly_price || 0) + Number(pkg.setup_fee || 0);
+            }
+          }
+        }
+
+        // Get product name from either table
+        let productName = "Hosting";
+        const { data: hp } = await supabaseAdmin
+          .from("hosting_products")
+          .select("name")
+          .eq("id", item.product_id)
+          .maybeSingle();
+        if (hp) {
+          productName = hp.name;
+        } else {
+          const { data: hpkg } = await supabaseAdmin
+            .from("hosting_packages")
+            .select("name")
+            .eq("id", item.product_id)
+            .maybeSingle();
+          if (hpkg) productName = hpkg.name;
+        }
+
+        description = `${productName} - ${item.billing_cycle || "monthly"}`;
         if (item.domain_name) description += ` (${item.domain_name})`;
-      } else if (["domain_register", "domain_transfer", "domain_renew"].includes(item.item_type)) {
-        const { data: tld } = await supabaseAdmin
-          .from("domain_tlds")
-          .select("register_price, transfer_price, renew_price")
-          .eq("tld", item.tld!)
-          .single();
 
-        if (tld) {
-          if (item.item_type === "domain_register") unitPrice = Number(tld.register_price);
-          else if (item.item_type === "domain_transfer") unitPrice = Number(tld.transfer_price);
-          else unitPrice = Number(tld.renew_price);
+      } else if (["domain_register", "domain_transfer", "domain_renew"].includes(item.item_type)) {
+        const tldValue = item.tld || (item.domain_name ? "." + item.domain_name.split(".").slice(1).join(".") : null);
+        
+        if (tldValue) {
+          const { data: tld } = await supabaseAdmin
+            .from("domain_tlds")
+            .select("register_price, transfer_price, renew_price")
+            .eq("tld", tldValue)
+            .maybeSingle();
+
+          if (tld) {
+            if (item.item_type === "domain_register") unitPrice = Number(tld.register_price);
+            else if (item.item_type === "domain_transfer") unitPrice = Number(tld.transfer_price);
+            else unitPrice = Number(tld.renew_price);
+          }
         }
         description = `Domain ${item.item_type.replace("domain_", "")} - ${item.domain_name}`;
       }
@@ -97,7 +140,7 @@ Deno.serve(async (req) => {
         .select("*")
         .eq("code", coupon_code.toUpperCase())
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
 
       if (coupon) {
         const now = new Date();
@@ -114,7 +157,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const tax = 0; // Tax can be configured via admin_settings later
+    const tax = 0;
     const total = subtotal - discount + tax;
 
     // Create order
@@ -170,13 +213,45 @@ Deno.serve(async (req) => {
     // Increment coupon usage
     if (couponId) {
       await supabaseAdmin.rpc("increment_coupon_usage", { coupon_id: couponId }).catch(() => {
-        // Non-critical, log but don't fail
         console.warn("Failed to increment coupon usage");
       });
     }
 
     // Clear cart
     await supabaseAdmin.from("cart_items").delete().eq("user_id", user.id);
+
+    // Get customer profile for notification
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", user.id)
+      .single();
+
+    // Notify ALL admins about new order
+    const { data: adminUsers } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .in("role", ["super_admin", "admin"]);
+
+    if (adminUsers) {
+      const adminNotifications = adminUsers.map((a: any) => ({
+        user_id: a.user_id,
+        title: "New Order Placed",
+        message: `${profile?.full_name || "A customer"} placed order ${order.order_number} for KES ${total.toLocaleString()}`,
+        type: "order",
+        action_url: `/admin/orders`,
+      }));
+      await supabaseAdmin.from("notifications").insert(adminNotifications).catch(() => {});
+    }
+
+    // Notify customer
+    await supabaseAdmin.from("notifications").insert({
+      user_id: user.id,
+      title: "Order Created",
+      message: `Your order ${order.order_number} has been created. Invoice ${invoice.invoice_number} is ready for payment. Total: KES ${total.toLocaleString()}`,
+      type: "order",
+      action_url: `/client/invoices/${invoice.id}`,
+    }).catch(() => {});
 
     return new Response(JSON.stringify({
       order_id: order.id,
