@@ -263,34 +263,18 @@ export function useCreateTicket() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (ticket: { subject: string; department_id: string; priority: string; message: string; service_id?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-
-      const { data: newTicket, error } = await supabase
-        .from('support_tickets')
-        .insert({
-          user_id: user.id,
-          subject: ticket.subject,
-          department_id: ticket.department_id,
-          priority: ticket.priority as any,
-          service_id: ticket.service_id || null,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-
-      await supabase.from('support_ticket_messages').insert({
-        ticket_id: newTicket.id,
-        sender_user_id: user.id,
-        sender_role: (profile?.role as any) || 'customer',
-        message: ticket.message,
+      const { data, error } = await supabase.functions.invoke('create-ticket', {
+        body: ticket,
       });
-
-      return newTicket;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-tickets'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
   });
 }
 
@@ -298,27 +282,89 @@ export function useReplyToTicket() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ ticketId, message }: { ticketId: string; message: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-      const role = (profile?.role as any) || 'customer';
-
-      const { error } = await supabase.from('support_ticket_messages').insert({
-        ticket_id: ticketId,
-        sender_user_id: user.id,
-        sender_role: role,
-        message,
+      const { data, error } = await supabase.functions.invoke('reply-ticket', {
+        body: { ticket_id: ticketId, message },
       });
       if (error) throw error;
-
-      // Update ticket status
-      const newStatus = ['super_admin', 'admin', 'support'].includes(role) ? 'admin_reply' : 'customer_reply';
-      await supabase.from('support_tickets').update({ status: newStatus as any }).eq('id', ticketId);
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket-detail', ticketId] });
       queryClient.invalidateQueries({ queryKey: ['my-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+export function useNotifications() {
+  return useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 15000, // Poll every 15 seconds
+  });
+}
+
+export function useUnreadNotificationCount() {
+  return useQuery({
+    queryKey: ['unread-notification-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_read', false);
+      if (error) throw error;
+      return count || 0;
+    },
+    refetchInterval: 15000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (notificationId: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['unread-notification-count'] });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['unread-notification-count'] });
     },
   });
 }
@@ -604,12 +650,27 @@ export function useAllTickets() {
   return useQuery({
     queryKey: ['admin-tickets'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch tickets first
+      const { data: tickets, error } = await supabase
         .from('support_tickets')
-        .select('*, profiles(full_name, email), support_departments(name)')
+        .select('*, support_departments(name)')
         .order('updated_at', { ascending: false });
       if (error) throw error;
-      return data;
+      if (!tickets?.length) return [];
+
+      // Fetch profiles for each unique user_id
+      const userIds = [...new Set(tickets.map((t: any) => t.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', userIds);
+
+      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+
+      return tickets.map((t: any) => ({
+        ...t,
+        profiles: profileMap.get(t.user_id) || { full_name: 'Unknown', email: '' },
+      }));
     },
   });
 }
