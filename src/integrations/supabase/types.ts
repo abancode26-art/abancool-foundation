@@ -103,39 +103,45 @@ export type Database = {
       }
       cart_items: {
         Row: {
-          billing_cycle: Database["public"]["Enums"]["billing_cycle"] | null
+          billing_cycle: string | null
           created_at: string
           domain_name: string | null
           id: string
           item_type: Database["public"]["Enums"]["cart_item_type"]
           metadata_json: Json | null
           product_id: string | null
+          product_type: string | null
           quantity: number
           tld: string | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          billing_cycle?: string | null
           created_at?: string
           domain_name?: string | null
           id?: string
           item_type: Database["public"]["Enums"]["cart_item_type"]
           metadata_json?: Json | null
           product_id?: string | null
+          product_type?: string | null
           quantity?: number
           tld?: string | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          billing_cycle?: string | null
           created_at?: string
           domain_name?: string | null
           id?: string
           item_type?: Database["public"]["Enums"]["cart_item_type"]
           metadata_json?: Json | null
           product_id?: string | null
+          product_type?: string | null
           quantity?: number
           tld?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -143,7 +149,7 @@ export type Database = {
             foreignKeyName: "cart_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "hosting_products"
+            referencedRelation: "hosting_packages"
             referencedColumns: ["id"]
           },
         ]
@@ -190,6 +196,39 @@ export type Database = {
           starts_at?: string | null
           updated_at?: string
           used_count?: number
+        }
+        Relationships: []
+      }
+      domain_pricing: {
+        Row: {
+          created_at: string | null
+          id: string
+          registration_price: number
+          renewal_price: number
+          status: string | null
+          tld: string
+          transfer_price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          registration_price: number
+          renewal_price: number
+          status?: string | null
+          tld: string
+          transfer_price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          registration_price?: number
+          renewal_price?: number
+          status?: string | null
+          tld?: string
+          transfer_price?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -322,6 +361,96 @@ export type Database = {
         }
         Relationships: []
       }
+      email_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          error_message: string | null
+          html_body: string
+          id: string
+          max_attempts: number
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          subject: string
+          template_name: string | null
+          template_variables: Json | null
+          text_body: string | null
+          to_email: string
+          to_name: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          html_body: string
+          id?: string
+          max_attempts?: number
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_name?: string | null
+          template_variables?: Json | null
+          text_body?: string | null
+          to_email: string
+          to_name?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          html_body?: string
+          id?: string
+          max_attempts?: number
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_name?: string | null
+          template_variables?: Json | null
+          text_body?: string | null
+          to_email?: string
+          to_name?: string | null
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          created_at: string
+          html_body: string
+          id: string
+          is_active: boolean
+          subject: string
+          template_name: string
+          text_body: string | null
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          created_at?: string
+          html_body: string
+          id?: string
+          is_active?: boolean
+          subject: string
+          template_name: string
+          text_body?: string | null
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          created_at?: string
+          html_body?: string
+          id?: string
+          is_active?: boolean
+          subject?: string
+          template_name?: string
+          text_body?: string | null
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       hosting_categories: {
         Row: {
           created_at: string
@@ -352,6 +481,54 @@ export type Database = {
           slug?: string
           sort_order?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      hosting_packages: {
+        Row: {
+          annual_price: number | null
+          badge_text: string | null
+          category: string
+          created_at: string | null
+          description: string | null
+          directadmin_package_name: string | null
+          features: string[] | null
+          id: string
+          monthly_price: number | null
+          name: string
+          setup_fee: number | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          annual_price?: number | null
+          badge_text?: string | null
+          category: string
+          created_at?: string | null
+          description?: string | null
+          directadmin_package_name?: string | null
+          features?: string[] | null
+          id?: string
+          monthly_price?: number | null
+          name: string
+          setup_fee?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          annual_price?: number | null
+          badge_text?: string | null
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          directadmin_package_name?: string | null
+          features?: string[] | null
+          id?: string
+          monthly_price?: number | null
+          name?: string
+          setup_fee?: number | null
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -463,10 +640,13 @@ export type Database = {
       }
       hosting_services: {
         Row: {
+          account_type: string | null
           billing_cycle: Database["public"]["Enums"]["billing_cycle"] | null
           created_at: string
           da_response_json: Json | null
           directadmin_domain: string | null
+          directadmin_package_name: string | null
+          directadmin_reseller: boolean | null
           directadmin_user: string | null
           domain_name: string
           id: string
@@ -475,6 +655,7 @@ export type Database = {
           order_item_id: string | null
           package_name: string | null
           product_id: string | null
+          reseller_privileges: Json | null
           server_hostname: string | null
           server_ip: string | null
           status: Database["public"]["Enums"]["service_status"]
@@ -483,10 +664,13 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          account_type?: string | null
           billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
           created_at?: string
           da_response_json?: Json | null
           directadmin_domain?: string | null
+          directadmin_package_name?: string | null
+          directadmin_reseller?: boolean | null
           directadmin_user?: string | null
           domain_name?: string
           id?: string
@@ -495,6 +679,7 @@ export type Database = {
           order_item_id?: string | null
           package_name?: string | null
           product_id?: string | null
+          reseller_privileges?: Json | null
           server_hostname?: string | null
           server_ip?: string | null
           status?: Database["public"]["Enums"]["service_status"]
@@ -503,10 +688,13 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          account_type?: string | null
           billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
           created_at?: string
           da_response_json?: Json | null
           directadmin_domain?: string | null
+          directadmin_package_name?: string | null
+          directadmin_reseller?: boolean | null
           directadmin_user?: string | null
           domain_name?: string
           id?: string
@@ -515,6 +703,7 @@ export type Database = {
           order_item_id?: string | null
           package_name?: string | null
           product_id?: string | null
+          reseller_privileges?: Json | null
           server_hostname?: string | null
           server_ip?: string | null
           status?: Database["public"]["Enums"]["service_status"]
@@ -597,49 +786,58 @@ export type Database = {
       invoices: {
         Row: {
           balance_due: number
+          billing_details: Json | null
           created_at: string
           currency: string
           due_date: string
           id: string
           invoice_number: string
+          metadata: Json | null
           order_id: string | null
           paid_at: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           subtotal: number
           tax: number
           total: number
+          total_amount: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           balance_due?: number
+          billing_details?: Json | null
           created_at?: string
           currency?: string
           due_date?: string
           id?: string
           invoice_number?: string
+          metadata?: Json | null
           order_id?: string | null
           paid_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
           tax?: number
           total?: number
+          total_amount?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           balance_due?: number
+          billing_details?: Json | null
           created_at?: string
           currency?: string
           due_date?: string
           id?: string
           invoice_number?: string
+          metadata?: Json | null
           order_id?: string | null
           paid_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
           tax?: number
           total?: number
+          total_amount?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -660,6 +858,107 @@ export type Database = {
           },
         ]
       }
+      mpesa_payment_requests: {
+        Row: {
+          account_reference: string | null
+          amount: number
+          callback_data: Json | null
+          checkout_request_id: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          invoice_id: string | null
+          merchant_request_id: string | null
+          phone_number: string
+          provider_response: Json | null
+          status: string | null
+          transaction_desc: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_reference?: string | null
+          amount: number
+          callback_data?: Json | null
+          checkout_request_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          invoice_id?: string | null
+          merchant_request_id?: string | null
+          phone_number: string
+          provider_response?: Json | null
+          status?: string | null
+          transaction_desc?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_reference?: string | null
+          amount?: number
+          callback_data?: Json | null
+          checkout_request_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          invoice_id?: string | null
+          merchant_request_id?: string | null
+          phone_number?: string
+          provider_response?: Json | null
+          status?: string | null
+          transaction_desc?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          metadata_json: Json | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          metadata_json?: Json | null
+          title: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata_json?: Json | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           billing_cycle: Database["public"]["Enums"]["billing_cycle"] | null
@@ -672,8 +971,10 @@ export type Database = {
           order_id: string
           product_id: string | null
           qty: number
+          quantity: number | null
           total_price: number
           unit_price: number
+          updated_at: string | null
         }
         Insert: {
           billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
@@ -686,8 +987,10 @@ export type Database = {
           order_id: string
           product_id?: string | null
           qty?: number
+          quantity?: number | null
           total_price?: number
           unit_price?: number
+          updated_at?: string | null
         }
         Update: {
           billing_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
@@ -700,8 +1003,10 @@ export type Database = {
           order_id?: string
           product_id?: string | null
           qty?: number
+          quantity?: number | null
           total_price?: number
           unit_price?: number
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -729,44 +1034,53 @@ export type Database = {
       }
       orders: {
         Row: {
+          billing_details: Json | null
           coupon_id: string | null
           created_at: string
           currency: string
           id: string
           notes: string | null
           order_number: string
+          payment_method: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           tax: number
           total: number
+          total_amount: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_details?: Json | null
           coupon_id?: string | null
           created_at?: string
           currency?: string
           id?: string
           notes?: string | null
           order_number?: string
+          payment_method?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           tax?: number
           total?: number
+          total_amount?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_details?: Json | null
           coupon_id?: string | null
           created_at?: string
           currency?: string
           id?: string
           notes?: string | null
           order_number?: string
+          payment_method?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           tax?: number
           total?: number
+          total_amount?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -1134,6 +1448,46 @@ export type Database = {
       }
     }
     Functions: {
+      add_package_to_cart: {
+        Args: {
+          billing_cycle?: string
+          package_name: string
+          user_uuid: string
+        }
+        Returns: Json
+      }
+      bytea_to_text: { Args: { data: string }; Returns: string }
+      calculate_cart_total: { Args: { user_uuid: string }; Returns: Json }
+      cart_add_package: {
+        Args: { billing_cycle_text?: string; package_id_text: string }
+        Returns: Json
+      }
+      check_payment_status: { Args: { invoice_uuid: string }; Returns: Json }
+      checkout_cart: {
+        Args: { billing_details: Json; payment_method?: string }
+        Returns: Json
+      }
+      clear_cart_after_payment_confirmation: {
+        Args: { invoice_uuid: string }
+        Returns: Json
+      }
+      clear_cart_for_user: { Args: { user_identifier?: string }; Returns: Json }
+      clear_user_cart: { Args: never; Returns: Json }
+      create_hosting_services_from_order: {
+        Args: { order_uuid: string }
+        Returns: Json
+      }
+      create_notification: {
+        Args: {
+          action_url?: string
+          metadata?: Json
+          notification_message: string
+          notification_title: string
+          notification_type?: string
+          target_user_id: string
+        }
+        Returns: string
+      }
       create_server: {
         Args: {
           directadmin_password?: string
@@ -1156,10 +1510,30 @@ export type Database = {
         }
         Returns: Json
       }
+      create_support_ticket_with_email: {
+        Args: {
+          ticket_category?: string
+          ticket_message: string
+          ticket_priority?: string
+          ticket_subject: string
+        }
+        Returns: Json
+      }
+      generate_da_credentials_with_email: {
+        Args: { domain_name: string; service_id: string }
+        Returns: Json
+      }
       get_directadmin_login: {
         Args: { service_uuid: string; user_uuid: string }
         Returns: Json
       }
+      get_payment_status: {
+        Args: { checkout_request_id: string }
+        Returns: Json
+      }
+      get_simple_cart_total: { Args: never; Returns: Json }
+      get_unread_notification_count: { Args: never; Returns: number }
+      handle_intasend_webhook: { Args: { webhook_data: Json }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1167,8 +1541,189 @@ export type Database = {
         }
         Returns: boolean
       }
+      http: {
+        Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "http_request"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_delete:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_get:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_head: {
+        Args: { uri: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_header: {
+        Args: { field: string; value: string }
+        Returns: Database["public"]["CompositeTypes"]["http_header"]
+        SetofOptions: {
+          from: "*"
+          to: "http_header"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_list_curlopt: {
+        Args: never
+        Returns: {
+          curlopt: string
+          value: string
+        }[]
+      }
+      http_patch: {
+        Args: { content: string; content_type: string; uri: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_post:
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_put: {
+        Args: { content: string; content_type: string; uri: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      http_reset_curlopt: { Args: never; Returns: boolean }
+      http_set_curlopt: {
+        Args: { curlopt: string; value: string }
+        Returns: boolean
+      }
+      initiate_intasend_mpesa_payment: {
+        Args: { amount: number; invoice_uuid: string; phone_number: string }
+        Returns: Json
+      }
+      initiate_mpesa_payment: {
+        Args: {
+          amount_param: number
+          invoice_id_param: string
+          phone_number: string
+        }
+        Returns: Json
+      }
       is_admin_or_above: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      mark_all_notifications_read: { Args: never; Returns: number }
+      mark_notification_read: {
+        Args: { notification_id: string }
+        Returns: boolean
+      }
+      process_checkout: {
+        Args: {
+          billing_details: Json
+          payment_method: string
+          user_uuid: string
+        }
+        Returns: Json
+      }
+      process_hosting_checkout: {
+        Args: {
+          billing_details: Json
+          payment_method: string
+          user_uuid: string
+        }
+        Returns: Json
+      }
+      process_intasend_callback: {
+        Args: {
+          callback_data?: Json
+          checkout_request_id: string
+          status?: string
+          transaction_id?: string
+        }
+        Returns: Json
+      }
+      provision_hosting_service: {
+        Args: { service_uuid: string }
+        Returns: Json
+      }
+      queue_email: {
+        Args: {
+          scheduled_at_param?: string
+          template_name_param: string
+          template_variables_param?: Json
+          to_email_param: string
+          to_name_param: string
+        }
+        Returns: string
+      }
       save_directadmin_config: {
         Args: {
           api_password?: string
@@ -1181,7 +1736,37 @@ export type Database = {
         }
         Returns: Json
       }
+      simple_add_to_cart: {
+        Args: {
+          billing_cycle_param?: string
+          product_id_param: string
+          quantity_param?: number
+        }
+        Returns: Json
+      }
+      simple_cleanup_pricing: { Args: never; Returns: string }
+      test_mpesa_function: { Args: never; Returns: Json }
+      test_mpesa_payment: {
+        Args: { amount: number; phone_number: string }
+        Returns: Json
+      }
+      text_to_bytea: { Args: { data: string }; Returns: string }
+      urlencode:
+        | { Args: { data: Json }; Returns: string }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
       verify_mpesa_tables: { Args: never; Returns: Json }
+      view_cart: { Args: { user_identifier?: string }; Returns: Json }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "support" | "customer"
@@ -1192,12 +1777,14 @@ export type Database = {
         | "annual"
         | "biennial"
         | "triennial"
+      billing_cycle_enum: "monthly" | "annually"
       cart_item_type:
         | "hosting"
         | "domain_register"
         | "domain_transfer"
         | "domain_renew"
         | "addon"
+        | "hosting_package"
       coupon_discount_type: "fixed" | "percent"
       domain_status:
         | "pending"
@@ -1205,7 +1792,13 @@ export type Database = {
         | "transfer_pending"
         | "expired"
         | "failed"
-      invoice_status: "unpaid" | "pending" | "paid" | "cancelled" | "refunded"
+      invoice_status:
+        | "unpaid"
+        | "pending"
+        | "paid"
+        | "cancelled"
+        | "refunded"
+        | "overdue"
       order_status:
         | "draft"
         | "pending_payment"
@@ -1215,6 +1808,8 @@ export type Database = {
         | "failed"
         | "cancelled"
         | "refunded"
+        | "pending"
+        | "completed"
       payment_status:
         | "initiated"
         | "pending"
@@ -1237,7 +1832,23 @@ export type Database = {
       ticket_status: "open" | "customer_reply" | "admin_reply" | "closed"
     }
     CompositeTypes: {
-      [_ in never]: never
+      http_header: {
+        field: string | null
+        value: string | null
+      }
+      http_request: {
+        method: unknown
+        uri: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content_type: string | null
+        content: string | null
+      }
+      http_response: {
+        status: number | null
+        content_type: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content: string | null
+      }
     }
   }
 }
@@ -1371,12 +1982,14 @@ export const Constants = {
         "biennial",
         "triennial",
       ],
+      billing_cycle_enum: ["monthly", "annually"],
       cart_item_type: [
         "hosting",
         "domain_register",
         "domain_transfer",
         "domain_renew",
         "addon",
+        "hosting_package",
       ],
       coupon_discount_type: ["fixed", "percent"],
       domain_status: [
@@ -1386,7 +1999,14 @@ export const Constants = {
         "expired",
         "failed",
       ],
-      invoice_status: ["unpaid", "pending", "paid", "cancelled", "refunded"],
+      invoice_status: [
+        "unpaid",
+        "pending",
+        "paid",
+        "cancelled",
+        "refunded",
+        "overdue",
+      ],
       order_status: [
         "draft",
         "pending_payment",
@@ -1396,6 +2016,8 @@ export const Constants = {
         "failed",
         "cancelled",
         "refunded",
+        "pending",
+        "completed",
       ],
       payment_status: ["initiated", "pending", "success", "failed", "reversed"],
       product_type: [
