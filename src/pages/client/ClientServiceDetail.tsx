@@ -36,7 +36,7 @@ export default function ClientServiceDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold font-heading">{service.domain_name || 'Service'}</h1><p className="text-muted-foreground">{service.hosting_products?.name || service.package_name}</p></div>
+        <div><h1 className="text-2xl font-bold font-heading">{service.domain_name || 'Service'}</h1><p className="text-muted-foreground">{service.package_name || service.directadmin_package_name || '—'}</p></div>
         <StatusBadge status={service.status} />
       </div>
 
