@@ -212,9 +212,10 @@ Deno.serve(async (req) => {
 
     // Increment coupon usage
     if (couponId) {
-      await supabaseAdmin.rpc("increment_coupon_usage", { coupon_id: couponId }).catch(() => {
-        console.warn("Failed to increment coupon usage");
-      });
+      const { error: couponUsageError } = await supabaseAdmin.rpc("increment_coupon_usage", { coupon_id: couponId });
+      if (couponUsageError) {
+        console.warn("Failed to increment coupon usage", couponUsageError);
+      }
     }
 
     // Clear cart
@@ -233,7 +234,7 @@ Deno.serve(async (req) => {
       .select("user_id")
       .in("role", ["super_admin", "admin"]);
 
-    if (adminUsers) {
+    if (adminUsers?.length) {
       const adminNotifications = adminUsers.map((a: any) => ({
         user_id: a.user_id,
         title: "New Order Placed",
@@ -241,17 +242,24 @@ Deno.serve(async (req) => {
         type: "order",
         action_url: `/admin/orders`,
       }));
-      await supabaseAdmin.from("notifications").insert(adminNotifications).catch(() => {});
+      const { error: adminNotificationError } = await supabaseAdmin.from("notifications").insert(adminNotifications);
+      if (adminNotificationError) {
+        console.warn("Failed to notify admins", adminNotificationError);
+      }
     }
 
     // Notify customer
-    await supabaseAdmin.from("notifications").insert({
+    const { error: customerNotificationError } = await supabaseAdmin.from("notifications").insert({
       user_id: user.id,
       title: "Order Created",
       message: `Your order ${order.order_number} has been created. Invoice ${invoice.invoice_number} is ready for payment. Total: KES ${total.toLocaleString()}`,
       type: "order",
       action_url: `/client/invoices/${invoice.id}`,
-    }).catch(() => {});
+    });
+
+    if (customerNotificationError) {
+      console.warn("Failed to notify customer", customerNotificationError);
+    }
 
     return new Response(JSON.stringify({
       order_id: order.id,
