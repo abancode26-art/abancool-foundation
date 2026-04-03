@@ -725,6 +725,13 @@ export type Database = {
             referencedRelation: "order_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "hosting_services_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "hosting_products"
+            referencedColumns: ["id"]
+          },
         ]
       }
       invoice_items: {
@@ -1271,6 +1278,13 @@ export type Database = {
           ticket_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_sender_profile_id_fkey"
+            columns: ["sender_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "support_ticket_messages_ticket_id_fkey"
             columns: ["ticket_id"]
