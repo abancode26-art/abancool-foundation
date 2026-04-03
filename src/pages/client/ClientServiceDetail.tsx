@@ -47,7 +47,7 @@ export default function ClientServiceDetail() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { label: 'Domain', value: service.domain_name || '—' },
-                { label: 'Package', value: service.hosting_products?.name || service.package_name || '—' },
+                { label: 'Package', value: service.package_name || service.directadmin_package_name || '—' },
                 { label: 'Billing Cycle', value: service.billing_cycle || '—' },
                 { label: 'Status', value: service.status },
                 { label: 'Created', value: service.created_at ? new Date(service.created_at).toLocaleDateString() : '—' },
