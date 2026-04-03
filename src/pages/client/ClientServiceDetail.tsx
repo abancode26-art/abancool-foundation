@@ -36,7 +36,7 @@ export default function ClientServiceDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold font-heading">{service.domain_name || 'Service'}</h1><p className="text-muted-foreground">{service.hosting_products?.name || service.package_name}</p></div>
+        <div><h1 className="text-2xl font-bold font-heading">{service.domain_name || 'Service'}</h1><p className="text-muted-foreground">{service.package_name || service.directadmin_package_name || '—'}</p></div>
         <StatusBadge status={service.status} />
       </div>
 
@@ -47,7 +47,7 @@ export default function ClientServiceDetail() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { label: 'Domain', value: service.domain_name || '—' },
-                { label: 'Package', value: service.hosting_products?.name || service.package_name || '—' },
+                { label: 'Package', value: service.package_name || service.directadmin_package_name || '—' },
                 { label: 'Billing Cycle', value: service.billing_cycle || '—' },
                 { label: 'Status', value: service.status },
                 { label: 'Created', value: service.created_at ? new Date(service.created_at).toLocaleDateString() : '—' },

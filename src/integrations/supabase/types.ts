@@ -144,15 +144,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "cart_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "hosting_packages"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       coupons: {
         Row: {
@@ -733,13 +725,6 @@ export type Database = {
             referencedRelation: "order_items"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "hosting_services_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "hosting_products"
-            referencedColumns: ["id"]
-          },
         ]
       }
       invoice_items: {
@@ -1021,13 +1006,6 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "recent_orders_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "hosting_products"
             referencedColumns: ["id"]
           },
         ]
@@ -1523,6 +1501,8 @@ export type Database = {
         Args: { domain_name: string; service_id: string }
         Returns: Json
       }
+      generate_invoice_number: { Args: never; Returns: string }
+      generate_order_number: { Args: never; Returns: string }
       get_directadmin_login: {
         Args: { service_uuid: string; user_uuid: string }
         Returns: Json
@@ -1666,6 +1646,10 @@ export type Database = {
         Args: { curlopt: string; value: string }
         Returns: boolean
       }
+      increment_coupon_usage: {
+        Args: { coupon_id: string }
+        Returns: undefined
+      }
       initiate_intasend_mpesa_payment: {
         Args: { amount: number; invoice_uuid: string; phone_number: string }
         Returns: Json
@@ -1745,6 +1729,18 @@ export type Database = {
         Returns: Json
       }
       simple_cleanup_pricing: { Args: never; Returns: string }
+      sql_checkout: {
+        Args: { coupon_code_input?: string; user_uuid: string }
+        Returns: Json
+      }
+      sql_mpesa_initiate: {
+        Args: {
+          invoice_id_input: string
+          phone_number_input: string
+          user_uuid: string
+        }
+        Returns: Json
+      }
       test_mpesa_function: { Args: never; Returns: Json }
       test_mpesa_payment: {
         Args: { amount: number; phone_number: string }

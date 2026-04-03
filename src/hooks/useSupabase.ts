@@ -105,7 +105,7 @@ export function useServiceDetail(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('hosting_services')
-        .select('*, hosting_products(name, slug, directadmin_package_name)')
+        .select('*')
         .eq('id', id)
         .single();
       if (error) throw error;
