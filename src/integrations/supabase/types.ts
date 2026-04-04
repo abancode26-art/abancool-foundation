@@ -191,36 +191,120 @@ export type Database = {
         }
         Relationships: []
       }
-      domain_pricing: {
+      domain_api_logs: {
         Row: {
           created_at: string | null
+          endpoint: string
+          error_message: string | null
+          execution_time_ms: number | null
           id: string
-          registration_price: number
-          renewal_price: number
-          status: string | null
-          tld: string
-          transfer_price: number | null
-          updated_at: string | null
+          method: string
+          provider_name: string | null
+          request_data: Json | null
+          response_data: Json | null
+          status_code: number | null
+          success: boolean | null
         }
         Insert: {
           created_at?: string | null
+          endpoint: string
+          error_message?: string | null
+          execution_time_ms?: number | null
           id?: string
-          registration_price: number
-          renewal_price: number
-          status?: string | null
-          tld: string
-          transfer_price?: number | null
-          updated_at?: string | null
+          method: string
+          provider_name?: string | null
+          request_data?: Json | null
+          response_data?: Json | null
+          status_code?: number | null
+          success?: boolean | null
         }
         Update: {
           created_at?: string | null
+          endpoint?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
           id?: string
-          registration_price?: number
-          renewal_price?: number
-          status?: string | null
+          method?: string
+          provider_name?: string | null
+          request_data?: Json | null
+          response_data?: Json | null
+          status_code?: number | null
+          success?: boolean | null
+        }
+        Relationships: []
+      }
+      domain_api_providers: {
+        Row: {
+          api_key: string
+          api_url: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_sandbox: boolean | null
+          metadata: Json | null
+          name: string
+          supported_tlds: string[] | null
+          username: string | null
+        }
+        Insert: {
+          api_key: string
+          api_url: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_sandbox?: boolean | null
+          metadata?: Json | null
+          name: string
+          supported_tlds?: string[] | null
+          username?: string | null
+        }
+        Update: {
+          api_key?: string
+          api_url?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_sandbox?: boolean | null
+          metadata?: Json | null
+          name?: string
+          supported_tlds?: string[] | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      domain_availability_cache: {
+        Row: {
+          cached_at: string | null
+          currency: string | null
+          domain_name: string
+          expires_at: string | null
+          id: string
+          is_available: boolean
+          price: number | null
+          provider_name: string | null
+          tld: string
+        }
+        Insert: {
+          cached_at?: string | null
+          currency?: string | null
+          domain_name: string
+          expires_at?: string | null
+          id?: string
+          is_available: boolean
+          price?: number | null
+          provider_name?: string | null
+          tld: string
+        }
+        Update: {
+          cached_at?: string | null
+          currency?: string | null
+          domain_name?: string
+          expires_at?: string | null
+          id?: string
+          is_available?: boolean
+          price?: number | null
+          provider_name?: string | null
           tld?: string
-          transfer_price?: number | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1454,6 +1538,19 @@ export type Database = {
         Args: { billing_cycle_text?: string; package_id_text: string }
         Returns: Json
       }
+      check_domain_availability: {
+        Args: { domain: string; tld: string; use_sandbox?: boolean }
+        Returns: Json
+      }
+      check_domain_cache: {
+        Args: { domain_input: string; tld_input: string }
+        Returns: {
+          cached_at: string
+          currency: string
+          is_available: boolean
+          price: number
+        }[]
+      }
       check_payment_status: { Args: { invoice_uuid: string }; Returns: Json }
       checkout_cart: {
         Args: { billing_details: Json; payment_method?: string }
@@ -1520,6 +1617,28 @@ export type Database = {
       get_directadmin_login: {
         Args: { service_uuid: string; user_uuid: string }
         Returns: Json
+      }
+      get_namecom_credentials: {
+        Args: { use_sandbox?: boolean }
+        Returns: {
+          api_token: string
+          api_url: string
+          auth_string: string
+          provider_id: string
+          username: string
+        }[]
+      }
+      get_namecom_logs: {
+        Args: { limit_count?: number }
+        Returns: {
+          created_at: string
+          endpoint: string
+          id: string
+          method: string
+          provider_name: string
+          status_code: number
+          success: boolean
+        }[]
       }
       get_payment_status: {
         Args: { checkout_request_id: string }
@@ -1678,10 +1797,20 @@ export type Database = {
       }
       is_admin_or_above: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      list_namecom_domains: { Args: { use_sandbox?: boolean }; Returns: Json }
       mark_all_notifications_read: { Args: never; Returns: number }
       mark_notification_read: {
         Args: { notification_id: string }
         Returns: boolean
+      }
+      namecom_mock_api: {
+        Args: {
+          endpoint: string
+          method?: string
+          request_body?: Json
+          use_sandbox?: boolean
+        }
+        Returns: Json
       }
       process_checkout: {
         Args: {
@@ -1734,6 +1863,10 @@ export type Database = {
         }
         Returns: Json
       }
+      search_domains: {
+        Args: { keyword: string; tlds?: string[]; use_sandbox?: boolean }
+        Returns: Json
+      }
       simple_add_to_cart: {
         Args: {
           billing_cycle_param?: string
@@ -1758,6 +1891,10 @@ export type Database = {
       test_mpesa_function: { Args: never; Returns: Json }
       test_mpesa_payment: {
         Args: { amount: number; phone_number: string }
+        Returns: Json
+      }
+      test_namecom_connection: {
+        Args: { use_sandbox?: boolean }
         Returns: Json
       }
       text_to_bytea: { Args: { data: string }; Returns: string }
