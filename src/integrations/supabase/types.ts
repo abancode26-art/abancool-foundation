@@ -1498,6 +1498,48 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_pricing: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          price: number | null
+          register_price: number | null
+          renew_price: number | null
+          restore_price: number | null
+          sort_order: number | null
+          tld: string | null
+          transfer_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          price?: number | null
+          register_price?: number | null
+          renew_price?: number | null
+          restore_price?: number | null
+          sort_order?: number | null
+          tld?: string | null
+          transfer_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          price?: number | null
+          register_price?: number | null
+          renew_price?: number | null
+          restore_price?: number | null
+          sort_order?: number | null
+          tld?: string | null
+          transfer_price?: number | null
+        }
+        Relationships: []
+      }
       recent_orders_view: {
         Row: {
           created_at: string | null
