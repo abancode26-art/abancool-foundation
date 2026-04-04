@@ -1922,14 +1922,23 @@ export type Database = {
         Args: { coupon_code_input?: string; user_uuid: string }
         Returns: Json
       }
-      sql_mpesa_initiate: {
-        Args: {
-          invoice_id_input: string
-          phone_number_input: string
-          user_uuid: string
-        }
-        Returns: Json
-      }
+      sql_mpesa_initiate:
+        | {
+            Args: {
+              invoice_id_input: string
+              phone_number_input: string
+              user_uuid: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              invoice_id_input: string
+              phone_number_input: string
+              user_uuid: string
+            }
+            Returns: Json
+          }
       test_mpesa_function: { Args: never; Returns: Json }
       test_mpesa_payment: {
         Args: { amount: number; phone_number: string }
