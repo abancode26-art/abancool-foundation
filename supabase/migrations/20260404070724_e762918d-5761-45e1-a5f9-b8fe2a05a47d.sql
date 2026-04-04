@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.sql_mpesa_initiate(uuid, uuid, text);
