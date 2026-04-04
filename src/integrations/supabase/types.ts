@@ -1641,6 +1641,17 @@ export type Database = {
         }
         Returns: Json
       }
+      create_support_ticket: {
+        Args: {
+          department_id_param?: string
+          message_param: string
+          priority_param?: string
+          service_id_param?: string
+          subject_param: string
+          user_uuid: string
+        }
+        Returns: Json
+      }
       create_support_ticket_with_email: {
         Args: {
           ticket_category?: string
